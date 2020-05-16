@@ -1,4 +1,3 @@
-
 import random, time
 
 start_time = time.time()
@@ -34,32 +33,32 @@ authorized_chars = ['2', '4', '6', '7', '8', '9',
 def validate_char_in_key(key):
   for c in key:
     if c not in authorized_chars:
-        print c
-        print "key rejected unauthorized char"
+        print(c)
+        print("key rejected unauthorized char")
         break
 
 def calculus_01(letter, debug=False):
   if debug:
-    print 'letter : ' + letter
+    print('letter : ' + letter)
   v1 = letter.lower() #If the letter was a maj put it into lowercase
   if(ord(v1) < 97): 
     result = ord(v1) - 48 #If it's a number we substract 48
   else:
     result = ord(v1) - 87 #If it's not a number we substract 87
   if debug:
-    print 'result : ' + str(result)
+    print('result : ' + str(result))
   return result
 
 def calculus_02(a1, debug=False):
   if debug:
-    print 'a1 : ' + str(a1)
+    print('a1 : ' + str(a1))
   v1 = a1 & 15
   if ( v1 < 10 ):
     result = v1 + 48
   else:
     result = v1 + 55
   if debug:
-    print 'result : ' + str(result)
+    print('result : ' + str(result))
   return result
 
 def validate_key(CDKEY):
@@ -111,8 +110,8 @@ def validate_key(CDKEY):
   for c in new_key_decimal:
     new_key = new_key + chr(c)
 
-  print 'Using given key   : ' + CDKEY
-  print 'Generated key is  : ' + new_key
+  print('Using given key   : ' + CDKEY)
+  print('Generated key is  : ' + new_key)
 
   #-------------------------------------------------------------------------
   #Getting the second score using the new_key_decimal generated.
@@ -125,20 +124,20 @@ def validate_key(CDKEY):
     v6 = chr(new_key_decimal[counter])
     #Condition to check that each character of our CDKEY is in ascii 0-9,a-z,A-Z.
     if ( (v6 < '0' or v6 > '9') and (v6 < 'a' or v6 > 'z') and (v6 < 'A' or v6 > 'Z') ):
-      print "key rejected unauthorized char"
+      print("key rejected unauthorized char")
       break
     v4 = v4 + ( 2 * v4 ^ calculus_01(v6) ) #Get v4 new value.
     counter = counter + 1 #We pass to next char.
   key_score = v4 & 255
 
-  print 'Get CDKEY score            : ' + str(principal_key_score)
-  print 'Get generated key score : ' + str(key_score)
+  print('Get CDKEY score            : ' + str(principal_key_score))
+  print('Get generated key score : ' + str(key_score))
 
   if(principal_key_score == key_score):
-    print 'Key is valid'
+    print('Key is valid')
     return 1
   else:
-    print 'key rejected'
+    print('key rejected')
     return 0
   #-------------------------------------------------------------------------
 
