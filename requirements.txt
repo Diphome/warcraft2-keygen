@@ -1,2 +1,3 @@
-matplotlib==3.2.1
-numpy==1.16.4
+# Only needed for warcraft2-keygen-stats.py (the plot).
+# The keygen itself uses the standard library only.
+matplotlib>=3.5
