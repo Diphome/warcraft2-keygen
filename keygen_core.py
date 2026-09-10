@@ -140,3 +140,76 @@ def find_valid_key(rng: random.Random = random) -> Tuple[str, int]:
         failures += 1
         candidate = generate_random_key(rng)
     return candidate, failures
+
+
+# ---------------------------------------------------------------------------
+# Constructive generation (no brute force)
+# ---------------------------------------------------------------------------
+#
+# The validation is separable, which lets us build a valid key directly:
+#
+#   * ``principal_key_score`` is an 8-bit mask: bit i is set iff pair i carries
+#     (i.e. ``b + 24*a >= 256``). Each bit depends only on its own pair.
+#   * ``key_score`` depends only on the 16 nibbles of the derived key, in order.
+#
+# So we can fix the first 7 pairs (locking bits 0..6 of the score and the
+# running key_score state), then enumerate the 576 possibilities of the last
+# pair and keep the first one for which key_score == principal_key_score.
+
+# Each authorized character maps to a value in 0..23; several characters can
+# share the same value (e.g. 'B' and 'b'). Map every distinct value to the
+# characters that produce it so the constructed key can still vary.
+_VALUE_TO_CHARS: dict = {}
+for _ch in AUTHORIZED_CHARS:
+    _VALUE_TO_CHARS.setdefault(LOOKUP_TABLE[ord(_ch)], []).append(_ch)
+_DISTINCT_VALUES: Tuple[int, ...] = tuple(sorted(_VALUE_TO_CHARS))
+
+
+def _pair_carry_and_nibbles(a: int, b: int) -> Tuple[int, int, int]:
+    """For a pair of values, return (carry, high_nibble, low_nibble)."""
+    v5 = b + 24 * a
+    carry = 0
+    if v5 >= 256:
+        v5 -= 256
+        carry = 1
+    return carry, (v5 >> 4) & 15, v5 & 15
+
+
+def _key_score_step(v4: int, nibble: int) -> int:
+    return v4 + (2 * v4 ^ nibble)
+
+
+def construct_valid_key(rng: random.Random = random) -> str:
+    """Build a valid key directly, without brute-forcing candidates.
+
+    Runs in roughly constant time: one random 7-pair prefix plus at most 576
+    constant-time checks of the final pair (a matching prefix is found on the
+    first try in the overwhelming majority of cases).
+    """
+    while True:
+        prefix = [(rng.choice(_DISTINCT_VALUES), rng.choice(_DISTINCT_VALUES))
+                  for _ in range(7)]
+
+        # Score mask and running key_score state after the first 7 pairs.
+        partial_score = 0
+        v4 = 3
+        for i, (a, b) in enumerate(prefix):
+            carry, hi, lo = _pair_carry_and_nibbles(a, b)
+            if carry:
+                partial_score |= 1 << i
+            v4 = _key_score_step(v4, hi)
+            v4 = _key_score_step(v4, lo)
+
+        # Enumerate the last pair; keep the first that balances the scores.
+        for a in _DISTINCT_VALUES:
+            for b in _DISTINCT_VALUES:
+                carry, hi, lo = _pair_carry_and_nibbles(a, b)
+                full_score = partial_score | (carry << 7)
+                v4_final = _key_score_step(v4, hi)
+                v4_final = _key_score_step(v4_final, lo)
+                if (v4_final & 255) == full_score:
+                    pairs = prefix + [(a, b)]
+                    return ''.join(
+                        rng.choice(_VALUE_TO_CHARS[value])
+                        for pair in pairs for value in pair
+                    )

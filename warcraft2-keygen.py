@@ -5,7 +5,7 @@ import argparse
 import random
 import time
 
-from keygen_core import derive_key, find_valid_key
+from keygen_core import construct_valid_key, derive_key, find_valid_key
 
 
 def _report_key(cdkey: str) -> None:
@@ -31,6 +31,10 @@ def parse_args(argv=None) -> argparse.Namespace:
         '-q', '--quiet', action='store_true',
         help='print only the valid keys, one per line',
     )
+    parser.add_argument(
+        '--brute-force', action='store_true',
+        help='use the random brute-force search instead of direct construction',
+    )
     return parser.parse_args(argv)
 
 
@@ -44,21 +48,31 @@ def main(argv=None) -> None:
     total_failures = 0
 
     for _ in range(args.count):
-        cdkey, failures = find_valid_key(rng)
-        total_failures += failures
+        if args.brute_force:
+            cdkey, failures = find_valid_key(rng)
+            total_failures += failures
+        else:
+            cdkey, failures = construct_valid_key(rng), 0
         if args.quiet:
             print(cdkey)
         else:
             _report_key(cdkey)
-            print(f'Valid key: {cdkey} (after {failures} failures)')
+            if args.brute_force:
+                print(f'Valid key: {cdkey} (after {failures} failures)')
+            else:
+                print(f'Valid key: {cdkey}')
             print('-' * 40)
 
     if not args.quiet:
         elapsed = time.time() - start_time
-        print(
+        method = 'brute force' if args.brute_force else 'direct construction'
+        summary = (
             f'Generated {args.count} valid key(s) in {elapsed:.4f} seconds '
-            f'after {total_failures} total failures.'
+            f'using {method}'
         )
+        if args.brute_force:
+            summary += f' after {total_failures} total failures'
+        print(summary + '.')
 
 
 if __name__ == '__main__':

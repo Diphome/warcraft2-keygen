@@ -40,6 +40,21 @@ def test_derive_key_matches_reference():
     assert principal == key_score == 133
 
 
+def test_construct_valid_key_always_valid():
+    rng = random.Random(2024)
+    for _ in range(2000):
+        key = keygen_core.construct_valid_key(rng)
+        assert len(key) == keygen_core.KEY_LENGTH
+        assert keygen_core.has_only_authorized_chars(key)
+        assert keygen_core.is_valid_key(key)
+
+
+def test_construct_valid_key_is_reproducible_with_seed():
+    key_a = keygen_core.construct_valid_key(random.Random(7))
+    key_b = keygen_core.construct_valid_key(random.Random(7))
+    assert key_a == key_b
+
+
 if __name__ == '__main__':
     import sys
     failures = 0
